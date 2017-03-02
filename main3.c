@@ -21,6 +21,8 @@ unsigned char* toProcess;
 char isFound = '0';
 
 unsigned char** bufferChild;
+unsigned short* childCounter;
+unsigned short* childNumber;
 
 unsigned char* findPath (unsigned char start, unsigned char goal, char isFound);
 unsigned char* getChild (unsigned char start);
@@ -38,6 +40,8 @@ int main(){
 	for(i=0; i < length; i++){
 		bufferChild[i] = (unsigned char*) malloc (5 * sizeof(unsigned char));
 	}
+	childCounter = (unsigned short*) malloc (length * sizeof(unsigned short));
+	childNumber = (unsigned short*) malloc (length * sizeof(unsigned short));
 
 	array = (unsigned char*) malloc (length * sizeof(unsigned char));
 	path = (unsigned char*) malloc (length * sizeof(unsigned char));
@@ -49,18 +53,19 @@ int main(){
 	}
 	array[0] = 'A'; array[1] = 6; array[2] = 12;
 	array[6] = 'B'; array[7] = 18; array[12] = 'C'; array[18] = 'D';
+	array[24] = 'E';
 
-	for(i = 0; i<24; i++){
-		printf("arr[%d]: %u \n", i, array[i]);
-	}
+	// for(i = 0; i<24; i++){
+	// 	printf("arr[%d]: %u \n", i, array[i]);
+	// }
 	unsigned char start = 'A';
-	unsigned char goal = 'D';
+	unsigned char goal = 'C';
 	// printf("%s \n", findPath(start,goal, '0'));
 	path = findPath(start, goal, '0');
 
 	// printf("sizeof(path): %d \n", pathCounter);
-	if(pathCounter > 1){
-		printf("Path: %c - ", start);
+	if(pathCounter > 0){
+		printf("Path: ", start);
 		for(i=0; i<pathCounter-1; i++){
 			printf("%c - ", path[i]);
 		}
@@ -73,6 +78,8 @@ int main(){
 
 unsigned char* findPath (unsigned char start, unsigned char goal, char isFound){
 	printf("start: %c ; goal: %c \n", start, goal);
+	path[pathCounter] = start;
+	pathCounter++;
 	// printf("isFound: %c \n", isFound);
 	if(isFound == '1'){
 		return path;
@@ -103,18 +110,52 @@ unsigned char* findPath (unsigned char start, unsigned char goal, char isFound){
 				printf("child[%d]: %u \n", i, children[i]);
 			}
 			printf("Count children: %d \n", countChild(children));
+			childNumber[levelCounter] = countChild(children);
 
 			if(countChild(children) == 0){
 				printf("zero child \n");
 				removeFromPath(start);
 				levelCounter--;
-				printf("levelCounter: %d \n", levelCounter);
+				pathCounter--;
 				if(levelCounter < 1)
 				{
 					printf("returning from zero child \n");
 					return "";
 				}
-				else return findPath(array[bufferChild[levelCounter][1]], goal, isFound);
+				else {
+					printf("levelCounter: %d \n", levelCounter);
+					printf("childCounter[levelCounter]: %d \n", childCounter[levelCounter]);
+					printf("childNumber[levelCounter]: %d \n", childNumber[levelCounter]);
+					if(childCounter[levelCounter]+1 < childNumber[levelCounter])
+					{
+						printf("backtrack \n");
+						pathCounter--;
+						printf("pathCounter:%d \n", pathCounter);
+						return findPath(array[bufferChild[levelCounter][childCounter[levelCounter]+1]], goal, isFound);
+					} else{
+						char stop = '0';
+						while (stop == '0'){
+							levelCounter--;
+							pathCounter--;
+							if(levelCounter < 1)
+							{
+								printf("returning from zero child \n");
+								return "";
+							}
+							else{
+								if(childCounter[levelCounter]+1 < childNumber[levelCounter])
+								{
+									stop = '1';
+									printf("backtrack \n");
+									pathCounter--;
+									return findPath(array[bufferChild[levelCounter][childCounter[levelCounter]+1]], goal, isFound);
+								}
+							}
+						}
+
+
+					}
+				}
 			}
 			else{
 				int i;
@@ -126,6 +167,7 @@ unsigned char* findPath (unsigned char start, unsigned char goal, char isFound){
 						pathCounter++;
 						visited[visitedCounter] = array[children[i]];
 						visitedCounter++;
+						childCounter[levelCounter] = i;
 						return findPath(array[children[i]], goal, isFound);
 					}
 				}
