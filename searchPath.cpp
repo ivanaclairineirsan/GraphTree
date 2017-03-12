@@ -5,35 +5,33 @@
 #include <string.h>
 using namespace std;
 
-struct street {
-  unsigned char start;
-  unsigned char end;
-  char streetName[30];
-} ;
-
-// A directed graph using adjacency list representation
-// Prints all paths from 's' to 'd'
+FILE *file2;
 unsigned char* array;
 unsigned char** alternativePath;
-street* streetData;
+unsigned short streetLength = 0;
+unsigned short connectionLength = 0;
 unsigned short length = 100;
 unsigned short pathLength = 50;
 unsigned short altPathIdx = 0;
 unsigned short getIndex (unsigned short idx);
+unsigned char* connectionNode;
+char** connectionStreet;
+unsigned short connStreetCounter = 0;
 
 int fsize(char* file);
 void readFile();
+void loadStreetInfo();
 unsigned short countNode(unsigned char* input);
 unsigned short* getChild (unsigned char start);
 void printAllPaths(unsigned char s, unsigned char d);
 void printAllPathsUtil(unsigned char u, unsigned char d, bool visited[],
 							unsigned char path[], unsigned short &path_index);
+int getShortestPathIdx();
+void printStreetName(int idx);
+char* getStreetName (unsigned char start, unsigned char end);
 
-
-// Driver program
 int main()
 {
-  // streetData = (street*) malloc (100 * sizeof(street));
   readFile();
 	unsigned char start = 16; unsigned char goal = 61;
 	// printf("GetIndex array[299]: %d \n", getIndex(299));
@@ -47,7 +45,42 @@ int main()
       printf("%u ", alternativePath[i][j]);
     cout << endl;
   }
-	return 0;
+
+  int shortIdx = getShortestPathIdx();
+
+  cout << "-- Shortest Path -- " << endl;
+  for (int j = 1; j<=alternativePath[shortIdx][0]; j++)
+    printf("%u ", alternativePath[shortIdx][j]);
+  cout << endl;
+
+  cout << "Jalan: ";
+  printStreetName (shortIdx);
+	return EXIT_FAILURE;
+}
+
+void printStreetName(int idx){
+  for(int i=1; i<alternativePath[idx][0]; i++){
+    cout << getStreetName(alternativePath[idx][i], alternativePath[idx][i+1]) << endl;
+  }
+  cout << endl;
+}
+
+char* getStreetName (unsigned char start, unsigned char end)
+{
+  printf("start: %u, end: %u \n", start, end);
+  for(int i=0; i<connectionLength; i+=3){
+    if(connectionNode[i] == start && connectionNode[i+1] == end)
+      return connectionStreet[connectionNode[i+2]];
+  }
+}
+
+int getShortestPathIdx(){
+  int min =  0;
+  for(int i = 1; i<altPathIdx; i++){
+    if(alternativePath[i][0] < alternativePath[min][0])
+      min = i;
+  }
+  return min;
 }
 
 unsigned short getIndex (unsigned short idx){
@@ -63,10 +96,41 @@ void readFile(){
     array = (unsigned char*) malloc (sizeof(unsigned char) * fileSize);
     fread(array, sizeof(unsigned char), fileSize, file );
     fclose(file);
-    // cout << "Node: " << countNode(array) << endl;
-    // printf("--- READ FILE --- \n--- Print isi file --- \n");
 
-    // printArray();
+    filePath = (char*) "connectionNode.txt";
+    printf("fileSize (read): %d\n", fsize(filePath));
+    connectionLength = fsize(filePath);
+    FILE *file1 = fopen(filePath, "rb");
+    fileSize = fsize(filePath);
+    connectionNode = (unsigned char*) malloc (sizeof(unsigned char) * fileSize);
+    fread(connectionNode, sizeof(unsigned char), fileSize, file1 );
+    fclose(file1);
+
+    connectionStreet = (char**) malloc (sizeof(connectionLength/3 * sizeof(char*)));
+    file2 = fopen("connectionStreet.txt", "r");
+    connectionStreet = (char**) malloc (connectionLength/3 * sizeof(char*));
+    connStreetCounter=0;
+    connectionStreet[connStreetCounter] = (char*) malloc(30);
+    while (fgets(connectionStreet[connStreetCounter], 30, file2) && connStreetCounter < connectionLength/3) {
+        int lastIdx = strlen(connectionStreet[connStreetCounter]);
+        connectionStreet[connStreetCounter][lastIdx-1] = 0;
+        // printf("read File: %s, strlen: %d \n", connectionStreet[connStreetCounter], strlen(connectionStreet[connStreetCounter]));
+        connStreetCounter++;
+        cout << "ConnstreetCounter: " << connStreetCounter << endl;
+        cout << "connectionLength: " << connectionLength/3 << endl;
+
+        if(connStreetCounter < connectionLength/3)
+          connectionStreet[connStreetCounter] = (char*) malloc(30);
+
+    }
+    // for(int j=0; j<connectionLength/3; j=j+1){
+    //   printf("Street name[%d]: %s \n", j, connectionStreet[j]);
+    // }
+    if(fclose(file2)){
+      printf("Error closing file."); exit(-1);
+    } else{
+      cout << "close \n";
+    }
 }
 
 int fsize(char* file)

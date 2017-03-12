@@ -27,9 +27,11 @@ struct street {
 } ;
 
 int length=100;
-int streetLength = 100;
+int streetLength = 200;
 #define COUNT 10
 struct street* streetData;
+unsigned char* streetConnection;
+unsigned short streetConnCounter = 0;
 unsigned char* array;
 unsigned char* read;
 unsigned char comparator[1];
@@ -53,6 +55,7 @@ void initializeNode();
 unsigned short searchIdx (unsigned short input);
 void insertGraphFromFile();
 void insertStreetData (unsigned short start, unsigned short end, char streetName[30]);
+void writeStreetConnection();
 
 int main(int argc, char** argv) {
   array = (unsigned char*) malloc (length * sizeof(unsigned char));
@@ -63,6 +66,12 @@ int main(int argc, char** argv) {
     array[i] = 0;
   }
 
+  for(i=0; i<streetLength; i++){
+    streetData[i].start = 0;
+    streetData[i].end = 0;
+    streetData[i].streetName = 0;
+  }
+
   printf(" ---------------------------------- \n");
   insertGraphFromFile();
 
@@ -70,33 +79,79 @@ int main(int argc, char** argv) {
 
   for(i=0; i<length; i++){
     fprintf (fp, "arr[%d]: %u\n", i, array[i]);
-    printf("arr[%d]: %u\n", i, array[i]);
+    // printf("arr[%d]: %u\n", i, array[i]);
   }
   fclose(fp);
-
+  //
   // insertStreetData(62, 63, "ivana");
   writeArrayToFile();
-  // readFile();
+  writeStreetConnection();
+
+  readFile();
   // printf("GetIndex array[239]: %d \n", getIndex(239));
   return (EXIT_SUCCESS);
 }
 
-void insertStreetData (unsigned short start, unsigned short end, char* streetName){
+void writeStreetConnection(){
+  unsigned char* streetConnectionData = (unsigned char*) malloc (streetLength*3 * sizeof(unsigned char));
+
+  int i;
+  for(i=0; i<streetLength*3; i++){
+    streetConnectionData[i] = 0;
+  }
+
+  unsigned short scdataCounter = 0;
+  FILE *fp = fopen("connectionNode.txt","wb");
+
+  i = 0;
+  // for(i=0; i<streetInfoCounter; i++){
+  //   printf("StreetData - before write: %u, %u, %s \n", streetData[i].start, streetData[i].end, streetData[i].streetName);
+  // }
+
+  i = 0;
+  while(streetData[i].start != 0){
+    printf("StreetData - writeConnection: %u, %u, %s \n", streetData[i].start, streetData[i].end, streetData[i].streetName);
+    streetConnectionData[scdataCounter] = streetData[i].start;
+    streetConnectionData[scdataCounter+1] = streetData[i].end;
+    streetConnectionData[scdataCounter+2] = scdataCounter/3;
+    // printf("streetConnectionData[%d]: %u, ",  scdataCounter, streetConnectionData[scdataCounter]);
+    // printf("streetConnectionData[%d]: %u, ",  scdataCounter, streetConnectionData[scdataCounter+1]);
+    // printf("streetConnectionData[%d]: %u \n",  scdataCounter, streetConnectionData[scdataCounter+2]);
+    char* tempPrint = streetData[i].streetName;
+    // printf("nama jalan: %s \n", tempPrint);
+    scdataCounter += 3;
+    i++;
+  }
+  printf("File saved! File name: connectionStreet.txt \n");
+
+  fwrite(streetConnectionData, sizeof(unsigned char), scdataCounter, fp);
+  printf("File saved! File name: connectionNode.txt \n");
+  fclose(fp);
+
+}
+
+void insertStreetData (unsigned short _start, unsigned short _end, char* _streetName){
 	if(streetInfoCounter < streetLength)
 	{
-		streetData[streetInfoCounter].start = start;
-		streetData[streetInfoCounter].end = end;
-		streetData[streetInfoCounter].streetName = streetName;
+		streetData[streetInfoCounter].start = _start;
+		streetData[streetInfoCounter].end = _end;
+    streetData[streetInfoCounter].streetName = (unsigned char*) malloc (30 * sizeof(unsigned char));
+		streetData[streetInfoCounter].streetName = _streetName;
 		streetInfoCounter++;
-		printf("StreetData: %u, %u, %s \n", streetData[streetInfoCounter-1].start, streetData[streetInfoCounter-1].end, streetData[streetInfoCounter-1].streetName);
+		printf("StreetData - insert: %u, %u, %s \n", streetData[streetInfoCounter-1].start, streetData[streetInfoCounter-1].end, streetData[streetInfoCounter-1].streetName);
 	}
 	else{
 		streetLength = streetLength*2;
 	    printf("Re-alloc! StreetData size now: %d\n", streetLength);
 	    streetData = (struct street*) realloc(streetData, streetLength);
-	    insertStreetData(start, end, streetName);
+      int i;
+      for(i=streetLength/2; i<streetLength; i++){
+        streetData[i].start = 0;
+        streetData[i].end = 0;
+        streetData[i].streetName = "";
+      }
+	    insertStreetData(_start, _end, _streetName);
 	}
-	"hai";
 }
 
 unsigned short getIndex (unsigned short idx){
@@ -104,7 +159,8 @@ unsigned short getIndex (unsigned short idx){
 }
 
 void insertGraphFromFile(){
-    FILE* file;
+   FILE* file;
+   FILE *fp1 = fopen("connectionStreet.txt", "w");
    char line[25];
    char start[3]; start[0] = ' '; start[1] = 'a'; start[2] = 'a';
    char end[3]; end[0] = ' '; end[1] = 'a'; end[2] = 'a';
@@ -137,9 +193,13 @@ void insertGraphFromFile(){
 
        printf("Inserting %d to %d \n", startS, endS);
        insertStreet(startS, endS);
-      //  insertStreetData(startS, endS, streetName);
+       insertStreetData(startS, endS, streetName);
+
+       fprintf (fp1, streetName);
+       fprintf(fp1, "\n");
    }
  fclose(file);
+ fclose(fp1);
 }
 
 void putIndex (unsigned short idx, unsigned short start){
@@ -153,12 +213,6 @@ void writeArrayToFile(){
     fclose(file);
     printf("File saved! File name: arrayFile.txt \n");
     printf("fileSize (write): %d\n", fsize("arrayFile.txt"));
-
-    FILE *file1 = fopen("arrayStreetName.txt", "wb");
-    fwrite(streetData, sizeof(struct street), streetInfoCounter, file1);
-    fclose(file1);
-    printf("File saved! File name: arrayStreetName.txt \n");
-    printf("fileSize (write): %d\n", fsize("arrayStreetName.txt"));
 }
 
 void readFile(){
