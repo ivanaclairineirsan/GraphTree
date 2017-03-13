@@ -1,5 +1,5 @@
 // C++ program to print all paths from a source to destination.
-#include<iostream>
+#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,18 +27,29 @@ void printAllPaths(unsigned char s, unsigned char d);
 void printAllPathsUtil(unsigned char u, unsigned char d, bool visited[],
 							unsigned char path[], unsigned short &path_index);
 int getShortestPathIdx();
-void printStreetName(int idx);
+void printStreetName(char* start, char* end,int idx);
 char* getStreetName (unsigned char start, unsigned char end);
+unsigned char searchPoint (char* input);
 
 int main()
 {
+  char startStreet[30];
+  char endStreet[30];
+  cout << "Start: ";
+  cin >> startStreet;
+  cout << "End: "; cin >> endStreet;
+
   readFile();
-	unsigned char start = 16; unsigned char goal = 61;
+	unsigned char start = searchPoint(startStreet);
+  unsigned char goal = searchPoint(endStreet);
 	// printf("GetIndex array[299]: %d \n", getIndex(299));
 	cout << "Following are all different paths from ";
-  printf("%u to %u \n", start, goal);
+  // printf("%u to %u \n", start, goal);
+	cout << startStreet << " to " << endStreet << ": " << endl;
+	cout << endl;
 	printAllPaths(start, goal);
 
+	cout << "-- Alternative Path -- " << endl;
   for(int i=0; i<altPathIdx; i++){
     // cout << "alternativePath[" << i << "].sizeof: " << sizeof(alternativePath[i]) << endl;
     for (int j = 1; j<=alternativePath[i][0]; j++)
@@ -48,26 +59,59 @@ int main()
 
   int shortIdx = getShortestPathIdx();
 
-  cout << "-- Shortest Path -- " << endl;
+  for (int j = 0; j<altPathIdx; j++)
+      printStreetName(startStreet, endStreet, j);
+  cout << endl;
+
+  cout << "-- Shortest Path -- \n";
   for (int j = 1; j<=alternativePath[shortIdx][0]; j++)
     printf("%u ", alternativePath[shortIdx][j]);
   cout << endl;
+  printStreetName (startStreet, endStreet, shortIdx);
 
-  cout << "Jalan: ";
-  printStreetName (shortIdx);
 	return EXIT_FAILURE;
 }
 
-void printStreetName(int idx){
-  for(int i=1; i<alternativePath[idx][0]; i++){
-    cout << getStreetName(alternativePath[idx][i], alternativePath[idx][i+1]) << endl;
+unsigned char searchPoint (char* input){
+  int i = 0;
+  while(i<connStreetCounter){
+    if(strcmp(input, connectionStreet[i]) == 0)
+      break;
+    i++;
   }
-  cout << endl;
+
+  int j = 0;
+  unsigned char temp = i;
+  while (j < connectionLength){
+    if(connectionNode[j+2] == temp)
+      return connectionNode[j];
+    j+=3;
+  }
+
 }
 
-char* getStreetName (unsigned char start, unsigned char end)
-{
-  printf("start: %u, end: %u \n", start, end);
+void printStreetName(char* start, char* end, int idx){
+  char lastPrint[40];
+  strcpy(lastPrint, start);
+  cout << start;
+  for(int i=1; i<alternativePath[idx][0]; i++){
+    char* streetNow =  getStreetName(alternativePath[idx][i], alternativePath[idx][i+1]);
+    // cout << "lastprint: " << lastPrint << endl;
+    // cout << "streetNow: " << streetNow << endl;
+    if(strcmp(lastPrint, streetNow) != 0)
+    {
+        cout << "--> " << streetNow;
+        strcpy(lastPrint, streetNow);
+    }
+  }
+  if(strcmp(lastPrint, end) != 0)
+    cout <<"--> " << end << endl;
+  else
+    cout << endl;
+}
+
+char* getStreetName (unsigned char start, unsigned char end) {
+  // printf("start: %u, end: %u \n", start, end);
   for(int i=0; i<connectionLength; i+=3){
     if(connectionNode[i] == start && connectionNode[i+1] == end)
       return connectionStreet[connectionNode[i+2]];
@@ -89,7 +133,7 @@ unsigned short getIndex (unsigned short idx){
 
 void readFile(){
     char* filePath = (char*) "arrayFile.txt";
-    printf("fileSize (read): %d\n", fsize(filePath));
+    // printf("fileSize (read): %d\n", fsize(filePath));
     length = fsize(filePath);
     FILE *file = fopen(filePath, "rb");
     int fileSize = fsize(filePath);
@@ -98,7 +142,7 @@ void readFile(){
     fclose(file);
 
     filePath = (char*) "connectionNode.txt";
-    printf("fileSize (read): %d\n", fsize(filePath));
+    // printf("fileSize (read): %d\n", fsize(filePath));
     connectionLength = fsize(filePath);
     FILE *file1 = fopen(filePath, "rb");
     fileSize = fsize(filePath);
@@ -116,8 +160,8 @@ void readFile(){
         connectionStreet[connStreetCounter][lastIdx-1] = 0;
         // printf("read File: %s, strlen: %d \n", connectionStreet[connStreetCounter], strlen(connectionStreet[connStreetCounter]));
         connStreetCounter++;
-        cout << "ConnstreetCounter: " << connStreetCounter << endl;
-        cout << "connectionLength: " << connectionLength/3 << endl;
+        // cout << "ConnstreetCounter: " << connStreetCounter << endl;
+        // cout << "connectionLength: " << connectionLength/3 << endl;
 
         if(connStreetCounter < connectionLength/3)
           connectionStreet[connStreetCounter] = (char*) malloc(30);
@@ -128,13 +172,10 @@ void readFile(){
     // }
     if(fclose(file2)){
       printf("Error closing file."); exit(-1);
-    } else{
-      cout << "close \n";
     }
 }
 
-int fsize(char* file)
-{
+int fsize(char* file) {
     FILE * f = fopen(file, "r");
     fseek(f, 0, SEEK_END);
     unsigned long len = (unsigned long)ftell(f);
